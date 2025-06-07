@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Симулятор семантичної мережі</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .control-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        input, select, button {
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .network-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            height: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #networkCanvas {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: crosshair;
+            background: radial-gradient(circle at 50% 50%, #f8f9ff 0%, #e8ecff 100%);
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 250px;
+            font-size: 14px;
+            border-left: 4px solid #667eea;
+        }
+
+        .node-info {
+            margin-bottom: 10px;
+        }
+
+        .node-info strong {
+            color: #667eea;
+        }
+
+        .legend {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .legend h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+            font-size: 1.2rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid rgba(0,0,0,0.1);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 768px) {
+            .control-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .info-panel {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-top: 15px;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Симулятор семантичної мережі</h1>
+            <p>Створюйте та досліджуйте зв'язки між концептами</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <input type="text" id="nodeInput" placeholder="Назва концепту" maxlength="20">
+                <select id="nodeType">
+                    <option value="concept">Концепт</option>
+                    <option value="person">Особа</option>
+                    <option value="place">Місце</option>
+                    <option value="object">Об'єкт</option>
+                    <option value="action">Дія</option>
+                </select>
+                <button onclick="addNode()">Додати вузол</button>
+                <button onclick="toggleConnectionMode()">Режим з'єднання</button>
+                <button onclick="clearNetwork()">Очистити мережу</button>
+            </div>
+            
+            <div class="control-group">
+                <select id="relationshipType">
+                    <option value="is-a">є різновидом</option>
+                    <option value="part-of">частина</option>
+                    <option value="has">має</option>
+                    <option value="located-in">розташований в</option>
+                    <option value="causes">спричиняє</option>
+                    <option value="similar-to">схожий на</option>
+                    <option value="opposite-to">протилежний до</option>
+                </select>
+                <button onclick="analyzeNetwork()">Аналізувати мережу</button>
+                <button onclick="findShortestPath()">Найкоротший шлях</button>
+            </div>
+        </div>
+
+        <div class="network-container">
+            <canvas id="networkCanvas" width="800" height="560"></canvas>
+            <div class="info-panel">
+                <div id="nodeInfo">
+                    <strong>Інформація про вузол:</strong><br>
+                    Клікніть на вузол для отримання деталей
+                </div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="nodeCount">0</div>
+                <div class="stat-label">Вузлів</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="connectionCount">0</div>
+                <div class="stat-label">З'єднань</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="density">0%</div>
+                <div class="stat-label">Щільність</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avgConnections">0</div>
+                <div class="stat-label">Середньо з'єднань</div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <h3>Легенда типів вузлів</h3>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4CAF50;"></div>
+                <span>Концепт</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2196F3;"></div>
+                <span>Особа</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF9800;"></div>
+                <span>Місце</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #9C27B0;"></div>
+                <span>Об'єкт</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #F44336;"></div>
+                <span>Дія</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SemanticNetwork {
+            constructor() {
+                this.canvas = document.getElementById('networkCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.nodes = [];
+                this.connections = [];
+                this.selectedNodes = [];
+                this.connectionMode = false;
+                this.isDragging = false;
+                this.dragNode = null;
+                this.mousePos = { x: 0, y: 0 };
+                
+                this.nodeColors = {
+                    concept: '#4CAF50',
+                    person: '#2196F3',
+                    place: '#FF9800',
+                    object: '#9C27B0',
+                    action: '#F44336'
+                };
+
+                this.setupEventListeners();
+                this.animate();
+                this.loadSampleData();
+            }
+
+            setupEventListeners() {
+                this.canvas.addEventListener('click', (e) => this.handleClick(e));
+                this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+                this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+                this.canvas.addEventListener('mouseleave', (e) => this.handleMouseUp(e));
+            }
+
+            loadSampleData() {
+                // Додаємо приклади вузлів
+                this.addNodeDirect('Тварина', 'concept', 200, 100);
+                this.addNodeDirect('Собака', 'concept', 100, 200);
+                this.addNodeDirect('Кіт', 'concept', 300, 200);
+                this.addNodeDirect('Ссавець', 'concept', 200, 50);
+                this.addNodeDirect('Париж', 'place', 500, 150);
+                this.addNodeDirect('Франція', 'place', 600, 100);
+                
+                // Додаємо зв'язки
+                this.addConnection(this.nodes[0], this.nodes[3], 'is-a');
+                this.addConnection(this.nodes[1], this.nodes[0], 'is-a');
+                this.addConnection(this.nodes[2], this.nodes[0], 'is-a');
+                this.addConnection(this.nodes[4], this.nodes[5], 'located-in');
+                
+                this.updateStats();
+            }
+
+            getMousePos(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
+
+            handleClick(e) {
+                const pos = this.getMousePos(e);
+                const clickedNode = this.getNodeAt(pos.x, pos.y);
+
+                if (clickedNode) {
+                    if (this.connectionMode) {
+                        if (this.selectedNodes.includes(clickedNode)) {
+                            this.selectedNodes = this.selectedNodes.filter(n => n !== clickedNode);
+                        } else {
+                            this.selectedNodes.push(clickedNode);
+                        }
+
+                        if (this.selectedNodes.length === 2) {
+                            const relationshipType = document.getElementById('relationshipType').value;
+                            this.addConnection(this.selectedNodes[0], this.selectedNodes[1], relationshipType);
+                            this.selectedNodes = [];
+                        }
+                    } else {
+                        this.showNodeInfo(clickedNode);
+                    }
+                }
+            }
+
+            handleMouseDown(e) {
+                const pos = this.getMousePos(e);
+                const clickedNode = this.getNodeAt(pos.x, pos.y);
+                
+                if (clickedNode && !this.connectionMode) {
+                    this.isDragging = true;
+                    this.dragNode = clickedNode;
+                    this.canvas.style.cursor = 'grabbing';
+                }
+            }
+
+            handleMouseMove(e) {
+                const pos = this.getMousePos(e);
+                this.mousePos = pos;
+                
+                if (this.isDragging && this.dragNode) {
+                    this.dragNode.x = pos.x;
+                    this.dragNode.y = pos.y;
+                } else {
+                    const hoveredNode = this.getNodeAt(pos.x, pos.y);
+                    this.canvas.style.cursor = hoveredNode ? 'pointer' : 'default';
+                }
+            }
+
+            handleMouseUp(e) {
+                this.isDragging = false;
+                this.dragNode = null;
+                this.canvas.style.cursor = 'default';
+            }
+
+            getNodeAt(x, y) {
+                return this.nodes.find(node => {
+                    const dx = x - node.x;
+                    const dy = y - node.y;
+                    return Math.sqrt(dx * dx + dy * dy) <= node.radius;
+                });
+            }
+
+            addNodeDirect(label, type, x, y) {
+                const node = {
+                    id: this.nodes.length,
+                    label: label,
+                    type: type,
+                    x: x || Math.random() * (this.canvas.width - 100) + 50,
+                    y: y || Math.random() * (this.canvas.height - 100) + 50,
+                    radius: 25,
+                    connections: 0
+                };
+                this.nodes.push(node);
+            }
+
+            addNode() {
+                const input = document.getElementById('nodeInput');
+                const typeSelect = document.getElementById('nodeType');
+                
+                if (input.value.trim()) {
+                    this.addNodeDirect(input.value.trim(), typeSelect.value);
+                    input.value = '';
+                    this.updateStats();
+                }
+            }
+
+            addConnection(node1, node2, type) {
+                if (node1 === node2) return;
+                
+                const existingConnection = this.connections.find(conn => 
+                    (conn.from === node1 && conn.to === node2) || 
+                    (conn.from === node2 && conn.to === node1)
+                );
+                
+                if (!existingConnection) {
+                    this.connections.push({
+                        from: node1,
+                        to: node2,
+                        type: type,
+                        strength: Math.random() * 0.5 + 0.5
+                    });
+                    node1.connections++;
+                    node2.connections++;
+                    this.updateStats();
+                }
+            }
+
+            showNodeInfo(node) {
+                const connections = this.connections
+                    .filter(conn => conn.from === node || conn.to === node)
+                    .map(conn => {
+                        const other = conn.from === node ? conn.to : conn.from;
+                        const direction = conn.from === node ? '→' : '←';
+                        return `${direction} ${other.label} (${conn.type})`;
+                    });
+
+                document.getElementById('nodeInfo').innerHTML = `
+                    <div class="node-info">
+                        <strong>${node.label}</strong><br>
+                        Тип: ${node.type}<br>
+                        З'єднань: ${node.connections}
+                    </div>
+                    ${connections.length > 0 ? `<div><strong>Зв'язки:</strong><br>${connections.join('<br>')}</div>` : ''}
+                `;
+            }
+
+            toggleConnectionMode() {
+                this.connectionMode = !this.connectionMode;
+                this.selectedNodes = [];
+                const button = document.querySelector('button[onclick="toggleConnectionMode()"]');
+                button.textContent = this.connectionMode ? 'Вихід із режиму' : 'Режим з\'єднання';
+                button.style.background = this.connectionMode ? 
+                    'linear-gradient(135deg, #f44336, #d32f2f)' : 
+                    'linear-gradient(135deg, #667eea, #764ba2)';
+            }
+
+            clearNetwork() {
+                this.nodes = [];
+                this.connections = [];
+                this.selectedNodes = [];
+                this.updateStats();
+            }
+
+            analyzeNetwork() {
+                if (this.nodes.length === 0) return;
+
+                const clusters = this.findClusters();
+                const centralNodes = this.findCentralNodes();
+                
+                alert(`Аналіз мережі:
+                
+🔍 Кластери: ${clusters.length}
+🌟 Центральні вузли: ${centralNodes.map(n => n.label).join(', ')}
+🔗 Найбільше з'єднань: ${Math.max(...this.nodes.map(n => n.connections))}
+📊 Середня кількість з'єднань: ${(this.connections.length * 2 / this.nodes.length).toFixed(1)}`);
+            }
+
+            findClusters() {
+                const visited = new Set();
+                const clusters = [];
+
+                for (const node of this.nodes) {
+                    if (!visited.has(node)) {
+                        const cluster = [];
+                        this.dfs(node, visited, cluster);
+                        clusters.push(cluster);
+                    }
+                }
+
+                return clusters;
+            }
+
+            dfs(node, visited, cluster) {
+                visited.add(node);
+                cluster.push(node);
+
+                const connections = this.connections.filter(conn => 
+                    conn.from === node || conn.to === node
+                );
+
+                for (const conn of connections) {
+                    const neighbor = conn.from === node ? conn.to : conn.from;
+                    if (!visited.has(neighbor)) {
+                        this.dfs(neighbor, visited, cluster);
+                    }
+                }
+            }
+
+            findCentralNodes() {
+                return this.nodes
+                    .sort((a, b) => b.connections - a.connections)
+                    .slice(0, 3);
+            }
+
+            findShortestPath() {
+                if (this.nodes.length < 2) {
+                    alert('Потрібно мінімум 2 вузли для пошуку шляху');
+                    return;
+                }
+
+                const startNode = this.nodes[Math.floor(Math.random() * this.nodes.length)];
+                const endNode = this.nodes[Math.floor(Math.random() * this.nodes.length)];
+                
+                if (startNode === endNode) {
+                    this.findShortestPath();
+                    return;
+                }
+
+                const path = this.bfs(startNode, endNode);
+                
+                if (path) {
+                    alert(`Найкоротший шлях від "${startNode.label}" до "${endNode.label}":
+                    
+${path.map(n => n.label).join(' → ')}
+                    
+Довжина: ${path.length - 1} кроків`);
+                } else {
+                    alert(`Шлях від "${startNode.label}" до "${endNode.label}" не знайдено`);
+                }
+            }
+
+            bfs(start, end) {
+                const queue = [[start]];
+                const visited = new Set([start]);
+
+                while (queue.length > 0) {
+                    const path = queue.shift();
+                    const current = path[path.length - 1];
+
+                    if (current === end) {
+                        return path;
+                    }
+
+                    const neighbors = this.connections
+                        .filter(conn => conn.from === current || conn.to === current)
+                        .map(conn => conn.from === current ? conn.to : conn.from)
+                        .filter(neighbor => !visited.has(neighbor));
+
+                    for (const neighbor of neighbors) {
+                        visited.add(neighbor);
+                        queue.push([...path, neighbor]);
+                    }
+                }
+
+                return null;
+            }
+
+            updateStats() {
+                document.getElementById('nodeCount').textContent = this.nodes.length;
+                document.getElementById('connectionCount').textContent = this.connections.length;
+                
+                const maxConnections = this.nodes.length * (this.nodes.length - 1) / 2;
+                const density = maxConnections > 0 ? (this.connections.length / maxConnections * 100).toFixed(1) : 0;
+                document.getElementById('density').textContent = density + '%';
+                
+                const avgConnections = this.nodes.length > 0 ? (this.connections.length * 2 / this.nodes.length).toFixed(1) : 0;
+                document.getElementById('avgConnections').textContent = avgConnections;
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Малюємо з'єднання
+                this.connections.forEach(conn => {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(conn.from.x, conn.from.y);
+                    this.ctx.lineTo(conn.to.x, conn.to.y);
+                    this.ctx.strokeStyle = `rgba(102, 126, 234, ${conn.strength})`;
+                    this.ctx.lineWidth = 2;
+                    this.ctx.stroke();
+
+                    // Стрілка
+                    const angle = Math.atan2(conn.to.y - conn.from.y, conn.to.x - conn.from.x);
+                    const headlen = 10;
+                    const x = conn.to.x - Math.cos(angle) * (conn.to.radius + 5);
+                    const y = conn.to.y - Math.sin(angle) * (conn.to.radius + 5);
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, y);
+                    this.ctx.lineTo(x - headlen * Math.cos(angle - Math.PI / 6), y - headlen * Math.sin(angle - Math.PI / 6));
+                    this.ctx.moveTo(x, y);
+                    this.ctx.lineTo(x - headlen * Math.cos(angle + Math.PI / 6), y - headlen * Math.sin(angle + Math.PI / 6));
+                    this.ctx.stroke();
+                });
+
+                // Малюємо вузли
+                this.nodes.forEach(node => {
+                    // Підсвічування для вибраних вузлів
+                    if (this.selectedNodes.includes(node)) {
+                        this.ctx.beginPath();
+                        this.ctx.arc(node.x, node.y, node.radius + 5, 0, 2 * Math.PI);
+                        this.ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+                        this.ctx.fill();
+                    }
+
+                    // Основний вузол
+                    this.ctx.beginPath();
+                    this.ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
+                    this.ctx.fillStyle = this.nodeColors[node.type];
+                    this.ctx.fill();
+                    this.ctx.strokeStyle = '#fff';
+                    this.ctx.lineWidth = 3;
+                    this.ctx.stroke();
+
+                    // Текст
+                    this.ctx.fillStyle = '#fff';
+                    this.ctx.font = 'bold 12px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText(node.label, node.x, node.y);
+                });
+            }
+
+            animate() {
+                this.draw();
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // Ініціалізація
+        const network = new SemanticNetwork();
+
+        // Глобальні функції
+        function addNode() {
+            network.addNode();
+        }
+
+        function toggleConnectionMode() {
+            network.toggleConnectionMode();
+        }
+
+        function clearNetwork() {
+            network.clearNetwork();
+        }
+
+        function analyzeNetwork() {
+            network.analyzeNetwork();
+        }
+
+        function findShortestPath() {
+            network.findShortestPath();
+        }
+    </script>
+</body>
+</html>
