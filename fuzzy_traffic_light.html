@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Симулятор світлофора з нечітким керуванням</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .control-panel {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .control-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .slider-container {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+        }
+
+        .value-display {
+            text-align: center;
+            font-weight: bold;
+            color: #667eea;
+            margin-top: 5px;
+        }
+
+        .traffic-light-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .road-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .road-section h4 {
+            color: #2c3e50;
+            font-size: 1.2em;
+            margin: 0;
+            text-align: center;
+        }
+
+        .traffic-light {
+            background: #333;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .light {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 10px;
+            border: 3px solid #555;
+            transition: all 0.3s ease;
+        }
+
+        .light.red { background: #ff4757; }
+        .light.yellow { background: #ffa502; }
+        .light.green { background: #2ed573; }
+
+        .light.active {
+            box-shadow: 0 0 30px currentColor;
+            transform: scale(1.1);
+        }
+
+        .light.inactive {
+            opacity: 0.3;
+            background: #666;
+        }
+
+        .timer-display {
+            background: #2c3e50;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.1em;
+            font-weight: bold;
+            min-width: 120px;
+        }
+
+        .fuzzy-analysis {
+            grid-column: 1 / -1;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            margin-top: 20px;
+        }
+
+        .fuzzy-analysis h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .analysis-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .membership-section, .rules-section, .output-section {
+            margin-bottom: 25px;
+        }
+
+        .membership-section h4, .rules-section h4, .output-section h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+
+        .analysis-item h5 {
+            color: #495057;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+        }
+
+        .membership-details {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .membership-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+
+        .membership-label {
+            min-width: 140px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .bar-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bar-fill {
+            height: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            min-width: 2px;
+        }
+
+        .membership-value {
+            font-weight: bold;
+            color: #667eea;
+            min-width: 40px;
+        }
+
+        .rules-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .rule-item {
+            background: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ddd;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+        }
+
+        .rule-item.active {
+            border-left-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            transform: translateX(5px);
+        }
+
+        .rule-weight {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .rule-text {
+            color: #495057;
+        }
+
+        .controls-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚦 Симулятор світлофора з нечітким керуванням</h1>
+            <p>Демонстрація застосування Fuzzy Logic у системах штучного інтелекту</p>
+        </div>
+
+        <div class="main-content">
+            <div class="control-panel">
+                <h3>Параметри трафіку</h3>
+                
+                <div class="input-group">
+                    <label for="mainRoad">Завантаженість головної дороги</label>
+                    <div class="slider-container">
+                        <input type="range" id="mainRoad" class="slider" min="0" max="100" value="30">
+                    </div>
+                    <div class="value-display" id="mainRoadValue">Низька (30%)</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="sideRoad">Завантаженість другорядної дороги</label>
+                    <div class="slider-container">
+                        <input type="range" id="sideRoad" class="slider" min="0" max="100" value="20">
+                    </div>
+                    <div class="value-display" id="sideRoadValue">Низька (20%)</div>
+                </div>
+
+                <div class="controls-section">
+                    <button class="btn" onclick="startSimulation()">Запустити симуляцію</button>
+                    <button class="btn" onclick="stopSimulation()">Зупинити</button>
+                </div>
+            </div>
+
+            <div class="traffic-light-container">
+                <div class="road-section">
+                    <h4>Головна дорога</h4>
+                    <div class="traffic-light" id="mainTrafficLight">
+                        <div class="light red" id="mainRed"></div>
+                        <div class="light yellow" id="mainYellow"></div>
+                        <div class="light green" id="mainGreen"></div>
+                    </div>
+                    <div class="timer-display" id="mainTimer">Готовий</div>
+                </div>
+                
+                <div class="road-section">
+                    <h4>Другорядна дорога</h4>
+                    <div class="traffic-light" id="sideTrafficLight">
+                        <div class="light red" id="sideRed"></div>
+                        <div class="light yellow" id="sideYellow"></div>
+                        <div class="light green" id="sideGreen"></div>
+                    </div>
+                    <div class="timer-display" id="sideTimer">Готовий</div>
+                </div>
+            </div>
+
+            <div class="fuzzy-analysis">
+                <h3>Детальний аналіз нечіткої логіки</h3>
+                
+                <div class="membership-section">
+                    <h4>Функції належності (Membership Functions)</h4>
+                    <div class="analysis-grid">
+                        <div class="analysis-item">
+                            <h5>Головна дорога - Завантаженість <span id="mainRoadPercent">30%</span></h5>
+                            <div class="membership-details">
+                                <div class="membership-bar">
+                                    <span class="membership-label">Низька (0-40%):</span>
+                                    <div class="bar-container">
+                                        <div class="bar-fill" id="mainLowBar"></div>
+                                        <span class="membership-value" id="mainLowValue">0.70</span>
+                                    </div>
+                                </div>
+                                <div class="membership-bar">
+                                    <span class="membership-label">Середня (20-70%):</span>
+                                    <div class="bar-container">
+                                        <div class="bar-fill" id="mainMediumBar"></div>
+                                        <span class="membership-value" id="mainMediumValue">0.30</span>
+                                    </div>
+                                </div>
+                                <div class="membership-bar">
+                                    <span class="membership-label">Висока (50-100%):</span>
+                                    <div class="bar-container">
+                                        <div class="bar-fill" id="mainHighBar"></div>
+                                        <span class="membership-value" id="mainHighValue">0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="analysis-item">
+                            <h5>Другорядна дорога - Завантаженість <span id="sideRoadPercent">20%</span></h5>
+                            <div class="membership-details">
+                                <div class="membership-bar">
+                                    <span class="membership-label">Низька (0-40%):</span>
+                                    <div class="bar-container">
+                                        <div class="bar-fill" id="sideLowBar"></div>
+                                        <span class="membership-value" id="sideLowValue">0.80</span>
+                                    </div>
+                                </div>
+                                <div class="membership-bar">
+                                    <span class="membership-label">Середня (20-70%):</span>
+                                    <div class="bar-container">
+                                        <div class="bar-fill" id="sideMediumBar"></div>
+                                        <span class="membership-value" id="sideMediumValue">0.20</span>
+                                    </div>
+                                </div>
+                                <div class="membership-bar">
+                                    <span class="membership-label">Висока (50-100%):</span>
+                                    <div class="bar-container">
+                                        <div class="bar-fill" id="sideHighBar"></div>
+                                        <span class="membership-value" id="sideHighValue">0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rules-section">
+                    <h4>Нечіткі правила та їх активація</h4>
+                    <div class="rules-container" id="rulesContainer">
+                        <!-- Правила будуть додані динамічно -->
+                    </div>
+                </div>
+
+                <div class="output-section">
+                    <h4>Дефазифікація та вихідне рішення</h4>
+                    <div class="analysis-grid">
+                        <div class="analysis-item">
+                            <h5>Метод центру ваги</h5>
+                            <p id="defuzzification">Сума зважених значень: 850, Сума ваг: 1.0</p>
+                            <p><strong>Результат:</strong> <span id="finalResult">25 секунд зеленого світла</span></p>
+                        </div>
+                        <div class="analysis-item">
+                            <h5>Розподіл часу</h5>
+                            <p id="timeDistribution">Головна дорога: 25с зелений + 3с жовтий<br>Другорядна дорога: 10с зелений + 3с жовтий</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Клас для роботи з нечіткою логікою
+        class FuzzyTrafficController {
+            constructor() {
+                this.mainState = 'red';
+                this.sideState = 'red';
+                this.mainTimer = 0;
+                this.sideTimer = 0;
+                this.isRunning = false;
+                this.interval = null;
+                this.currentMainDuration = 0;
+                this.currentSideDuration = 0;
+            }
+
+            // Функції належності для завантаженості доріг
+            getMembership(value, type) {
+                const memberships = {};
+                
+                if (type === 'traffic') {
+                    // Низька завантаженість (0-40)
+                    if (value <= 20) {
+                        memberships.low = 1.0;
+                    } else if (value <= 40) {
+                        memberships.low = (40 - value) / 20;
+                    } else {
+                        memberships.low = 0.0;
+                    }
+
+                    // Середня завантаженість (20-70)
+                    if (value <= 20) {
+                        memberships.medium = 0.0;
+                    } else if (value <= 45) {
+                        memberships.medium = (value - 20) / 25;
+                    } else if (value <= 70) {
+                        memberships.medium = (70 - value) / 25;
+                    } else {
+                        memberships.medium = 0.0;
+                    }
+
+                    // Висока завантаженість (50-100)
+                    if (value <= 50) {
+                        memberships.high = 0.0;
+                    } else if (value <= 100) {
+                        memberships.high = (value - 50) / 50;
+                    } else {
+                        memberships.high = 1.0;
+                    }
+                }
+
+                return memberships;
+            }
+
+            // Нечіткі правила для визначення часу
+            applyFuzzyRules(mainRoadMemberships, sideRoadMemberships) {
+                const rules = [];
+                const outputs = [];
+
+                // Правило 1: Низька головна, низька другорядна -> короткий час (20с)
+                const rule1 = Math.min(mainRoadMemberships.low, sideRoadMemberships.low);
+                if (rule1 > 0) {
+                    rules.push({
+                        weight: rule1,
+                        text: "ЯКЩО головна дорога має НИЗЬКУ завантаженість І другорядна дорога має НИЗЬКУ завантаженість ТО встановити КОРОТКИЙ час зеленого світла",
+                        output: 20,
+                        id: 1
+                    });
+                    outputs.push({ weight: rule1, value: 20 });
+                }
+
+                // Правило 2: Низька головна, середня другорядна -> короткий час (25с)
+                const rule2 = Math.min(mainRoadMemberships.low, sideRoadMemberships.medium);
+                if (rule2 > 0) {
+                    rules.push({
+                        weight: rule2,
+                        text: "ЯКЩО головна дорога має НИЗЬКУ завантаженість І другорядна дорога має СЕРЕДНЮ завантаженість ТО встановити КОРОТКИЙ час зеленого світла",
+                        output: 25,
+                        id: 2
+                    });
+                    outputs.push({ weight: rule2, value: 25 });
+                }
+
+                // Правило 3: Низька головна, висока другорядна -> дуже короткий час (15с)
+                const rule3 = Math.min(mainRoadMemberships.low, sideRoadMemberships.high);
+                if (rule3 > 0) {
+                    rules.push({
+                        weight: rule3,
+                        text: "ЯКЩО головна дорога має НИЗЬКУ завантаженість І другорядна дорога має ВИСОКУ завантаженість ТО встановити ДУЖЕ КОРОТКИЙ час зеленого світла",
+                        output: 15,
+                        id: 3
+                    });
+                    outputs.push({ weight: rule3, value: 15 });
+                }
+
+                // Правило 4: Середня головна, низька другорядна -> середній час (35с)
+                const rule4 = Math.min(mainRoadMemberships.medium, sideRoadMemberships.low);
+                if (rule4 > 0) {
+                    rules.push({
+                        weight: rule4,
+                        text: "ЯКЩО головна дорога має СЕРЕДНЮ завантаженість І другорядна дорога має НИЗЬКУ завантаженість ТО встановити СЕРЕДНІЙ час зеленого світла",
+                        output: 35,
+                        id: 4
+                    });
+                    outputs.push({ weight: rule4, value: 35 });
+                }
+
+                // Правило 5: Середня головна, середня другорядна -> середній час (40с)
+                const rule5 = Math.min(mainRoadMemberships.medium, sideRoadMemberships.medium);
+                if (rule5 > 0) {
+                    rules.push({
+                        weight: rule5,
+                        text: "ЯКЩО головна дорога має СЕРЕДНЮ завантаженість І другорядна дорога має СЕРЕДНЮ завантаженість ТО встановити СЕРЕДНІЙ час зеленого світла",
+                        output: 40,
+                        id: 5
+                    });
+                    outputs.push({ weight: rule5, value: 40 });
+                }
+
+                // Правило 6: Середня головна, висока другорядна -> короткий час (30с)
+                const rule6 = Math.min(mainRoadMemberships.medium, sideRoadMemberships.high);
+                if (rule6 > 0) {
+                    rules.push({
+                        weight: rule6,
+                        text: "ЯКЩО головна дорога має СЕРЕДНЮ завантаженість І другорядна дорога має ВИСОКУ завантаженість ТО встановити КОРОТКИЙ час зеленого світла",
+                        output: 30,
+                        id: 6
+                    });
+                    outputs.push({ weight: rule6, value: 30 });
+                }
+
+                // Правило 7: Висока головна, низька другорядна -> довгий час (50с)
+                const rule7 = Math.min(mainRoadMemberships.high, sideRoadMemberships.low);
+                if (rule7 > 0) {
+                    rules.push({
+                        weight: rule7,
+                        text: "ЯКЩО головна дорога має ВИСОКУ завантаженість І другорядна дорога має НИЗЬКУ завантаженість ТО встановити ДОВГИЙ час зеленого світла",
+                        output: 50,
+                        id: 7
+                    });
+                    outputs.push({ weight: rule7, value: 50 });
+                }
+
+                // Правило 8: Висока головна, середня другорядна -> довгий час (55с)
+                const rule8 = Math.min(mainRoadMemberships.high, sideRoadMemberships.medium);
+                if (rule8 > 0) {
+                    rules.push({
+                        weight: rule8,
+                        text: "ЯКЩО головна дорога має ВИСОКУ завантаженість І другорядна дорога має СЕРЕДНЮ завантаженість ТО встановити ДОВГИЙ час зеленого світла",
+                        output: 55,
+                        id: 8
+                    });
+                    outputs.push({ weight: rule8, value: 55 });
+                }
+
+                // Правило 9: Висока головна, висока другорядна -> збалансований час (45с)
+                const rule9 = Math.min(mainRoadMemberships.high, sideRoadMemberships.high);
+                if (rule9 > 0) {
+                    rules.push({
+                        weight: rule9,
+                        text: "ЯКЩО головна дорога має ВИСОКУ завантаженість І другорядна дорога має ВИСОКУ завантаженість ТО встановити ЗБАЛАНСОВАНИЙ час зеленого світла",
+                        output: 45,
+                        id: 9
+                    });
+                    outputs.push({ weight: rule9, value: 45 });
+                }
+
+                return { rules, outputs };
+            }
+
+            // Дефазифікація (центр ваги)
+            defuzzify(outputs) {
+                if (outputs.length === 0) return 30;
+
+                let numerator = 0;
+                let denominator = 0;
+
+                outputs.forEach(output => {
+                    numerator += output.weight * output.value;
+                    denominator += output.weight;
+                });
+
+                return denominator === 0 ? 30 : numerator / denominator;
+            }
+
+            // Обчислення оптимального часу світла
+            calculateOptimalTiming(mainRoadValue, sideRoadValue) {
+                const mainRoadMemberships = this.getMembership(mainRoadValue, 'traffic');
+                const sideRoadMemberships = this.getMembership(sideRoadValue, 'traffic');
+
+                const { rules, outputs } = this.applyFuzzyRules(mainRoadMemberships, sideRoadMemberships);
+                const optimalTime = Math.round(this.defuzzify(outputs));
+
+                return {
+                    mainRoadMemberships,
+                    sideRoadMemberships,
+                    rules,
+                    optimalTime
+                };
+            }
+
+            // Запуск симуляції
+            start(mainRoadValue, sideRoadValue) {
+                if (this.isRunning) return;
+
+                this.isRunning = true;
+                const analysis = this.calculateOptimalTiming(mainRoadValue, sideRoadValue);
+                
+                // Головна дорога починає з зеленого
+                this.currentMainDuration = analysis.optimalTime;
+                this.mainTimer = this.currentMainDuration;
+                this.mainState = 'green';
+                
+                // Другорядна дорога починає з червоного
+                this.currentSideDuration = Math.max(15, Math.round(analysis.optimalTime * 0.4));
+                this.sideTimer = this.mainTimer + 3; // Червоний під час зеленого головної + жовтий
+                this.sideState = 'red';
+
+                this.updateDisplay();
+                this.updateAnalysis(analysis);
+
+                this.interval = setInterval(() => {
+                    this.mainTimer--;
+                    this.sideTimer--;
+                    
+                    // Перемикання головної дороги
+                    if (this.mainTimer <= 0) {
+                        this.switchMainState();
+                    }
+                    
+                    // Перемикання другорядної дороги
+                    if (this.sideTimer <= 0) {
+                        this.switchSideState();
+                    }
+                    
+                    this.updateDisplay();
+                }, 1000);
+            }
+
+            // Перемикання стану світлофора головної дороги
+            switchMainState() {
+                switch (this.mainState) {
+                    case 'green':
+                        this.mainState = 'yellow';
+                        this.mainTimer = 3;
+                        // Підготовка другорядної дороги до зеленого
+                        if (this.sideState === 'red') {
+                            this.sideTimer = 3;
+                        }
+                        break;
+                    case 'yellow':
+                        this.mainState = 'red';
+                        this.mainTimer = this.currentSideDuration + 3; // Час для другорядної + жовтий
+                        break;
+                    case 'red':
+                        // Перерахунок часу на основі поточних параметрів
+                        const mainRoadValue = parseInt(document.getElementById('mainRoad').value);
+                        const sideRoadValue = parseInt(document.getElementById('sideRoad').value);
+                        const analysis = this.calculateOptimalTiming(mainRoadValue, sideRoadValue);
+                        
+                        this.currentMainDuration = analysis.optimalTime;
+                        this.mainTimer = this.currentMainDuration;
+                        this.mainState = 'green';
+                        this.updateAnalysis(analysis);
+                        break;
+                }
+            }
+
+            // Перемикання стану світлофора другорядної дороги
+            switchSideState() {
+                switch (this.sideState) {
+                    case 'red':
+                        if (this.mainState === 'yellow' || this.mainState === 'red') {
+                            this.sideState = 'green';
+                            this.sideTimer = this.currentSideDuration;
+                        } else {
+                            this.sideTimer = 1;
+                        }
+                        break;
+                    case 'green':
+                        this.sideState = 'yellow';
+                        this.sideTimer = 3;
+                        break;
+                    case 'yellow':
+                        this.sideState = 'red';
+                        this.sideTimer = this.currentMainDuration + 3; // Час для головної + жовтий
+                        break;
+                }
+            }
+
+            // Оновлення відображення
+            updateDisplay() {
+                // Оновлення світлофора головної дороги
+                ['red', 'yellow', 'green'].forEach(color => {
+                    const light = document.getElementById(`main${color.charAt(0).toUpperCase() + color.slice(1)}`);
+                    light.classList.remove('active', 'inactive');
+                    if (color === this.mainState) {
+                        light.classList.add('active');
+                    } else {
+                        light.classList.add('inactive');
+                    }
+                });
+
+                // Оновлення світлофора другорядної дороги
+                ['red', 'yellow', 'green'].forEach(color => {
+                    const light = document.getElementById(`side${color.charAt(0).toUpperCase() + color.slice(1)}`);
+                    light.classList.remove('active', 'inactive');
+                    if (color === this.sideState) {
+                        light.classList.add('active');
+                    } else {
+                        light.classList.add('inactive');
+                    }
+                });
+
+                // Оновлення таймерів
+                const stateNames = {
+                    green: 'Зелений',
+                    yellow: 'Жовтий',
+                    red: 'Червоний'
+                };
+                
+                document.getElementById('mainTimer').textContent = `${stateNames[this.mainState]}: ${Math.max(0, this.mainTimer)}с`;
+                document.getElementById('sideTimer').textContent = `${stateNames[this.sideState]}: ${Math.max(0, this.sideTimer)}с`;
+            }
+
+            // Оновлення аналізу
+            updateAnalysis(analysis) {
+                const mainRoadValue = parseInt(document.getElementById('mainRoad').value);
+                const sideRoadValue = parseInt(document.getElementById('sideRoad').value);
+
+                // Оновлення відсотків
+                document.getElementById('mainRoadPercent').textContent = `${mainRoadValue}%`;
+                document.getElementById('sideRoadPercent').textContent = `${sideRoadValue}%`;
+
+                // Оновлення ступенів належності з візуальними барами
+                this.updateMembershipBars('main', analysis.mainRoadMemberships);
+                this.updateMembershipBars('side', analysis.sideRoadMemberships);
+
+                // Оновлення правил
+                this.updateRules(analysis.rules);
+
+                // Оновлення дефазифікації
+                const totalWeight = analysis.rules.reduce((sum, rule) => sum + rule.weight, 0);
+                const weightedSum = analysis.rules.reduce((sum, rule) => sum + (rule.weight * rule.output), 0);
+                
+                document.getElementById('defuzzification').innerHTML = 
+                    `Сума зважених значень: ${weightedSum.toFixed(1)}<br>Сума ваг: ${totalWeight.toFixed(3)}<br>Результат: ${weightedSum.toFixed(1)} / ${totalWeight.toFixed(3)} = ${analysis.optimalTime}с`;
+                
+                document.getElementById('finalResult').textContent = `${analysis.optimalTime} секунд зеленого світла для головної дороги`;
+                
+                const sideTime = Math.max(10, Math.round(analysis.optimalTime * 0.4));
+                document.getElementById('timeDistribution').innerHTML = 
+                    `Головна дорога: ${analysis.optimalTime}с зелений + 3с жовтий<br>Другорядна дорога: ${sideTime}с зелений + 3с жовтий`;
+            }
+
+            updateMembershipBars(prefix, memberships) {
+                const categories = ['Low', 'Medium', 'High'];
+                const values = [memberships.low, memberships.medium, memberships.high];
+                
+                categories.forEach((category, index) => {
+                    const value = values[index];
+                    const barElement = document.getElementById(`${prefix}${category}Bar`);
+                    const valueElement = document.getElementById(`${prefix}${category}Value`);
+                    
+                    if (barElement && valueElement) {
+                        barElement.style.width = `${value * 100}%`;
+                        valueElement.textContent = value.toFixed(3);
+                    }
+                });
+            }
+
+            updateRules(rules) {
+                const container = document.getElementById('rulesContainer');
+                if (!container) return;
+                
+                container.innerHTML = '';
+                
+                // Показуємо всі 9 можливих правил
+                const allRules = [
+                    "ЯКЩО головна дорога має НИЗЬКУ завантаженість І другорядна дорога має НИЗЬКУ завантаженість ТО встановити КОРОТКИЙ час (20с)",
+                    "ЯКЩО головна дорога має НИЗЬКУ завантаженість І другорядна дорога має СЕРЕДНЮ завантаженість ТО встановити КОРОТКИЙ час (25с)",
+                    "ЯКЩО головна дорога має НИЗЬКУ завантаженість І другорядна дорога має ВИСОКУ завантаженість ТО встановити ДУЖЕ КОРОТКИЙ час (15с)",
+                    "ЯКЩО головна дорога має СЕРЕДНЮ завантаженість І другорядна дорога має НИЗЬКУ завантаженість ТО встановити СЕРЕДНІЙ час (35с)",
+                    "ЯКЩО головна дорога має СЕРЕДНЮ завантаженість І другорядна дорога має СЕРЕДНЮ завантаженість ТО встановити СЕРЕДНІЙ час (40с)",
+                    "ЯКЩО головна дорога має СЕРЕДНЮ завантаженість І другорядна дорога має ВИСОКУ завантаженість ТО встановити КОРОТКИЙ час (30с)",
+                    "ЯКЩО головна дорога має ВИСОКУ завантаженість І другорядна дорога має НИЗЬКУ завантаженість ТО встановити ДОВГИЙ час (50с)",
+                    "ЯКЩО головна дорога має ВИСОКУ завантаженість І другорядна дорога має СЕРЕДНЮ завантаженість ТО встановити ДОВГИЙ час (55с)",
+                    "ЯКЩО головна дорога має ВИСОКУ завантаженість І другорядна дорога має ВИСОКУ завантаженість ТО встановити ЗБАЛАНСОВАНИЙ час (45с)"
+                ];
+
+                allRules.forEach((ruleText, index) => {
+                    const ruleDiv = document.createElement('div');
+                    ruleDiv.className = 'rule-item';
+                    
+                    const activeRule = rules.find(r => r.id === index + 1);
+                    if (activeRule && activeRule.weight > 0.001) {
+                        ruleDiv.classList.add('active');
+                        ruleDiv.innerHTML = `
+                            <span class="rule-weight">Правило ${index + 1} (Вага: ${activeRule.weight.toFixed(3)}):</span><br>
+                            <span class="rule-text">${ruleText}</span>
+                        `;
+                    } else {
+                        ruleDiv.innerHTML = `
+                            <span class="rule-weight">Правило ${index + 1} (Неактивне):</span><br>
+                            <span class="rule-text">${ruleText}</span>
+                        `;
+                    }
+                    
+                    container.appendChild(ruleDiv);
+                });
+            }
+
+            // Зупинка симуляції
+            stop() {
+                this.isRunning = false;
+                if (this.interval) {
+                    clearInterval(this.interval);
+                    this.interval = null;
+                }
+                
+                // Скидання світлофорів
+                document.querySelectorAll('.light').forEach(light => {
+                    light.classList.remove('active', 'inactive');
+                });
+                
+                document.getElementById('mainTimer').textContent = 'Зупинено';
+                document.getElementById('sideTimer').textContent = 'Зупинено';
+            }
+        }
+
+        // Глобальні змінні
+        let trafficController;
+
+        // Ініціалізація після завантаження DOM
+        document.addEventListener('DOMContentLoaded', function() {
+            // Створення контролера
+            trafficController = new FuzzyTrafficController();
+
+            // Функції для отримання текстового опису рівня завантаженості
+            function getTrafficLevel(value) {
+                if (value <= 30) return 'Низька';
+                if (value <= 70) return 'Середня';
+                return 'Висока';
+            }
+
+            function updateRealtimeAnalysis() {
+                const mainRoadValue = parseInt(document.getElementById('mainRoad').value);
+                const sideRoadValue = parseInt(document.getElementById('sideRoad').value);
+                const analysis = trafficController.calculateOptimalTiming(mainRoadValue, sideRoadValue);
+                trafficController.updateAnalysis(analysis);
+            }
+
+            // Глобальні функції керування симуляцією
+            window.startSimulation = function() {
+                const mainRoadValue = parseInt(document.getElementById('mainRoad').value);
+                const sideRoadValue = parseInt(document.getElementById('sideRoad').value);
+                trafficController.start(mainRoadValue, sideRoadValue);
+            };
+
+            window.stopSimulation = function() {
+                trafficController.stop();
+            };
+
+            // Обробники подій для слайдерів
+            document.getElementById('mainRoad').addEventListener('input', function(e) {
+                const value = parseInt(e.target.value);
+                const level = getTrafficLevel(value);
+                document.getElementById('mainRoadValue').textContent = `${level} (${value}%)`;
+                
+                // Оновлення аналізу в реальному часі
+                if (!trafficController.isRunning) {
+                    updateRealtimeAnalysis();
+                }
+            });
+
+            document.getElementById('sideRoad').addEventListener('input', function(e) {
+                const value = parseInt(e.target.value);
+                const level = getTrafficLevel(value);
+                document.getElementById('sideRoadValue').textContent = `${level} (${value}%)`;
+                
+                // Оновлення аналізу в реальному часі
+                if (!trafficController.isRunning) {
+                    updateRealtimeAnalysis();
+                }
+            });
+
+            // Оновлення початкових значень
+            document.getElementById('mainRoad').dispatchEvent(new Event('input'));
+            document.getElementById('sideRoad').dispatchEvent(new Event('input'));
+            
+            // Початковий аналіз
+            updateRealtimeAnalysis();
+        });
+    </script>
+</body>
+</html>
