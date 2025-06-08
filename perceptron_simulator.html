@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Симулятор персептрона Розенблатта</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .canvas-container {
+            position: relative;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #canvas {
+            border: 2px solid #333;
+            border-radius: 10px;
+            cursor: crosshair;
+            display: block;
+            background: white;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            height: fit-content;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        .control-group h3 {
+            margin-bottom: 15px;
+            color: #fff;
+            font-size: 1.2em;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .buttons.single {
+            grid-template-columns: 1fr;
+        }
+
+        button {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: linear-gradient(145deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .start { background: linear-gradient(145deg, #4CAF50, #45a049); }
+        .pause { background: linear-gradient(145deg, #ff9800, #f57c00); }
+        .clear { background: linear-gradient(145deg, #f44336, #d32f2f); }
+        .reset { background: linear-gradient(145deg, #9c27b0, #7b1fa2); }
+        .red-btn { background: linear-gradient(145deg, #ff4757, #ff3742); }
+        .blue-btn { background: linear-gradient(145deg, #3742fa, #2f3542); }
+        .manual-add-btn { background: linear-gradient(145deg, #4CAF50, #45a049); }
+
+        .class-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .class-btn {
+            padding: 12px 16px;
+            border: 3px solid transparent;
+            opacity: 0.7;
+            transition: all 0.3s ease;
+        }
+
+        .class-btn.active {
+            opacity: 1;
+            border-color: #ffeb3b;
+            box-shadow: 0 0 15px rgba(255, 235, 59, 0.5);
+            transform: scale(1.05);
+        }
+
+        .current-mode {
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .current-class-indicator {
+            color: #ffeb3b;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            margin-bottom: 5px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .info {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .info div {
+            margin-bottom: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+
+        .red { background-color: #ff4757; }
+        .blue { background-color: #3742fa; }
+
+        .instructions-panel h3 {
+            color: #ffeb3b;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.4em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .instruction-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .instruction-item strong {
+            color: #ffeb3b;
+        }
+
+        .perceptron-diagram {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #4CAF50;
+        }
+
+        .perceptron-diagram h4 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .diagram-svg {
+            width: 100%;
+            height: 300px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .weight-text {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(145deg, #4CAF50, #45a049);
+            color: white;
+            padding: 30px 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            border: 3px solid #ffeb3b;
+            animation: slideIn 0.5s ease-out;
+            cursor: pointer;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .left-panel, .right-panel {
+                order: 2;
+            }
+            
+            .canvas-container {
+                order: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 Симулятор персептрона Розенблатта</h1>
+        
+        <div class="main-content">
+            <div class="left-panel panel">
+                <div class="instructions-panel">
+                    <h3>📖 Інструкція</h3>
+                    
+                    <div class="instruction-item">
+                        <strong>🎯 Вибір класу:</strong><br>
+                        Оберіть клас кнопками 🔴/🔵 справа
+                    </div>
+                    
+                    <div class="instruction-item">
+                        <strong>🖱️ Додавання точок:</strong><br>
+                        • Ліва кнопка - вибраний клас<br>
+                        • Права кнопка - протилежний клас
+                    </div>
+                    
+                    <div class="instruction-item">
+                        <strong>✏️ Ручне додавання:</strong><br>
+                        Встановіть координати повзунками та натисніть "Додати точку"
+                    </div>
+                    
+                    <div class="instruction-item">
+                        <strong>🎲 Випадкові точки:</strong><br>
+                        Встановіть кількість (5-100) та натисніть "Випадкові точки"
+                    </div>
+                    
+                    <div class="instruction-item">
+                        <strong>🎮 Навчання:</strong><br>
+                        • "Старт" - почати навчання<br>
+                        • "Пауза" - призупинити<br>
+                        • Змінюйте швидкість повзунком
+                    </div>
+                    
+                    <div class="instruction-item">
+                        <strong>📊 Візуалізація:</strong><br>
+                        • Зелена лінія - лінія розділення<br>
+                        • Жовта обводка - поточна точка<br>
+                        • Схема персептрона показує ваги
+                    </div>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="canvas" width="600" height="500"></canvas>
+                
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color red"></div>
+                        <span style="color: #333;">Клас A (червоні)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color blue"></div>
+                        <span style="color: #333;">Клас B (сині)</span>
+                    </div>
+                </div>
+
+                <div class="perceptron-diagram">
+                    <h4>🧠 Структура персептрона</h4>
+                    <svg class="diagram-svg" id="perceptronDiagram">
+                        <!-- Входи -->
+                        <circle cx="70" cy="80" r="20" fill="#3742fa" stroke="#333" stroke-width="3"/>
+                        <text x="70" y="60" text-anchor="middle" class="weight-text" fill="#333" font-size="14">x₁</text>
+                        
+                        <circle cx="70" cy="160" r="20" fill="#3742fa" stroke="#333" stroke-width="3"/>
+                        <text x="70" y="140" text-anchor="middle" class="weight-text" fill="#333" font-size="14">x₂</text>
+                        
+                        <circle cx="70" cy="230" r="18" fill="#ff9800" stroke="#333" stroke-width="3"/>
+                        <text x="70" y="210" text-anchor="middle" class="weight-text" fill="#333" font-size="12">bias</text>
+                        
+                        <!-- Лінії з вагами -->
+                        <line x1="90" y1="80" x2="180" y2="130" stroke="#333" stroke-width="3"/>
+                        <text x="120" y="90" class="weight-text" fill="#333" font-size="14" id="w1Text">w₁: 0.00</text>
+                        
+                        <line x1="90" y1="160" x2="180" y2="150" stroke="#333" stroke-width="3"/>
+                        <text x="120" y="170" class="weight-text" fill="#333" font-size="14" id="w2Text">w₂: 0.00</text>
+                        
+                        <line x1="88" y1="230" x2="180" y2="170" stroke="#333" stroke-width="3"/>
+                        <text x="115" y="220" class="weight-text" fill="#333" font-size="14" id="biasText">b: 0.00</text>
+                        
+                        <!-- Нейрон -->
+                        <circle cx="210" cy="150" r="35" fill="#4CAF50" stroke="#333" stroke-width="4"/>
+                        <text x="210" y="160" text-anchor="middle" class="weight-text" fill="white" font-size="20">Σ</text>
+                        
+                        <!-- Функція активації -->
+                        <rect x="270" y="125" width="40" height="50" fill="#ff4757" stroke="#333" stroke-width="3" rx="8"/>
+                        <text x="290" y="155" text-anchor="middle" class="weight-text" fill="white" font-size="14">f(x)</text>
+                        
+                        <!-- Вихід -->
+                        <circle cx="360" cy="150" r="20" fill="#9c27b0" stroke="#333" stroke-width="3"/>
+                        <text x="360" y="185" text-anchor="middle" class="weight-text" fill="#333" font-size="14" id="outputText">y: 0</text>
+                        
+                        <!-- З'єднувальні лінії -->
+                        <line x1="245" y1="150" x2="270" y2="150" stroke="#333" stroke-width="3"/>
+                        <line x1="310" y1="150" x2="340" y2="150" stroke="#333" stroke-width="3"/>
+                        
+                        <!-- Додаткові позначки -->
+                        <text x="210" y="20" text-anchor="middle" class="weight-text" fill="#333" font-size="16" font-weight="bold">Персептрон Розенблатта</text>
+                        <text x="210" y="280" text-anchor="middle" class="weight-text" fill="#666" font-size="12">Лінійний класифікатор</text>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="right-panel panel">
+                <div class="info">
+                    <div><strong>📊 Статистика навчання:</strong></div>
+                    <div>Епоха: <span id="epoch">0</span></div>
+                    <div>Помилки: <span id="errors">0</span></div>
+                    <div>Точність: <span id="accuracy">0%</span></div>
+                    <div>Швидкість: <span id="speed">1000ms</span></div>
+                </div>
+
+                <div class="info">
+                    <div><strong>🔧 Ваги персептрона:</strong></div>
+                    <div>w₁: <span id="w1">0.00</span></div>
+                    <div>w₂: <span id="w2">0.00</span></div>
+                    <div>bias: <span id="bias">0.00</span></div>
+                </div>
+
+                <div class="control-group">
+                    <h3>🎯 Режим додавання точок</h3>
+                    <div class="class-selector">
+                        <button id="selectRedBtn" class="class-btn red-btn active">🔴 Клас A</button>
+                        <button id="selectBlueBtn" class="class-btn blue-btn">🔵 Клас B</button>
+                    </div>
+                    <div class="current-mode">
+                        <span>Активний клас: </span>
+                        <span id="currentClass" class="current-class-indicator">🔴 Клас A</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>🎮 Управління</h3>
+                    <div class="buttons">
+                        <button id="startBtn" class="start">▶ Старт</button>
+                        <button id="pauseBtn" class="pause" disabled>⏸ Пауза</button>
+                        <button id="clearBtn" class="clear">🗑 Очистити</button>
+                        <button id="resetBtn" class="reset">🔄 Скинути ваги</button>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px;">Кількість випадкових точок:</label>
+                        <input type="range" id="randomPointsCount" min="5" max="100" step="5" value="20" style="width: 100%;">
+                        <span id="pointsCountValue">20</span>
+                    </div>
+                    <div class="buttons single">
+                        <button id="addPointsBtn">🎲 Випадкові точки</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>➕ Додати точку вручну</h3>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px;">X координата:</label>
+                        <input type="range" id="manualX" min="-1" max="1" step="0.1" value="0" style="width: 100%;">
+                        <span id="xValue">0</span>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px;">Y координата:</label>
+                        <input type="range" id="manualY" min="-1" max="1" step="0.1" value="0" style="width: 100%;">
+                        <span id="yValue">0</span>
+                    </div>
+                    <div class="buttons single">
+                        <button id="addManualBtn" class="manual-add-btn">➕ Додати точку</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>⚙️ Параметри</h3>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px;">Швидкість навчання:</label>
+                        <input type="range" id="learningRate" min="0.01" max="1" step="0.01" value="0.1" style="width: 100%;">
+                        <span id="lrValue">0.1</span>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px;">Швидкість анімації (мс):</label>
+                        <input type="range" id="speedSlider" min="100" max="2000" step="100" value="1000" style="width: 100%;">
+                        <span id="speedValue">1000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Perceptron {
+            constructor(learningRate = 0.1) {
+                this.weights = [Math.random() * 2 - 1, Math.random() * 2 - 1];
+                this.bias = Math.random() * 2 - 1;
+                this.learningRate = learningRate;
+            }
+
+            predict(inputs) {
+                let sum = this.bias;
+                for (let i = 0; i < inputs.length; i++) {
+                    sum += inputs[i] * this.weights[i];
+                }
+                return sum >= 0 ? 1 : -1;
+            }
+
+            train(inputs, target) {
+                let prediction = this.predict(inputs);
+                let error = target - prediction;
+                
+                if (error !== 0) {
+                    for (let i = 0; i < this.weights.length; i++) {
+                        this.weights[i] += error * inputs[i] * this.learningRate;
+                    }
+                    this.bias += error * this.learningRate;
+                    return true; // помилка була
+                }
+                return false; // помилки не було
+            }
+
+            reset() {
+                this.weights = [Math.random() * 2 - 1, Math.random() * 2 - 1];
+                this.bias = Math.random() * 2 - 1;
+            }
+        }
+
+        class PerceptronSimulator {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.points = [];
+                this.perceptron = new Perceptron();
+                this.isTraining = false;
+                this.currentPointIndex = 0;
+                this.epoch = 0;
+                this.errors = 0;
+                this.speed = 1000;
+                this.trainingInterval = null;
+                this.selectedClass = 1;
+                this.isConverged = false;
+                this.epochsSinceLastError = 0;
+
+                this.setupEventListeners();
+                this.updateDisplay();
+                this.updateDiagram();
+                this.draw();
+            }
+
+            setupEventListeners() {
+                // Canvas events
+                this.canvas.addEventListener('click', (e) => this.addPoint(e, this.selectedClass));
+                this.canvas.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    this.addPoint(e, this.selectedClass === 1 ? -1 : 1);
+                });
+
+                // Button events
+                document.getElementById('startBtn').addEventListener('click', () => this.startTraining());
+                document.getElementById('pauseBtn').addEventListener('click', () => this.pauseTraining());
+                document.getElementById('clearBtn').addEventListener('click', () => this.clearPoints());
+                document.getElementById('resetBtn').addEventListener('click', () => this.resetWeights());
+                document.getElementById('addPointsBtn').addEventListener('click', () => this.addRandomPoints());
+
+                // Class selection buttons
+                document.getElementById('selectRedBtn').addEventListener('click', () => this.selectClass(1));
+                document.getElementById('selectBlueBtn').addEventListener('click', () => this.selectClass(-1));
+
+                // Manual point addition
+                document.getElementById('addManualBtn').addEventListener('click', () => this.addManualPoint());
+
+                // Manual coordinate sliders
+                document.getElementById('manualX').addEventListener('input', (e) => {
+                    document.getElementById('xValue').textContent = parseFloat(e.target.value).toFixed(1);
+                });
+                document.getElementById('manualY').addEventListener('input', (e) => {
+                    document.getElementById('yValue').textContent = parseFloat(e.target.value).toFixed(1);
+                });
+
+                // Random points count slider
+                document.getElementById('randomPointsCount').addEventListener('input', (e) => {
+                    document.getElementById('pointsCountValue').textContent = e.target.value;
+                });
+
+                // Slider events
+                document.getElementById('learningRate').addEventListener('input', (e) => {
+                    this.perceptron.learningRate = parseFloat(e.target.value);
+                    document.getElementById('lrValue').textContent = e.target.value;
+                });
+
+                document.getElementById('speedSlider').addEventListener('input', (e) => {
+                    this.speed = parseInt(e.target.value);
+                    document.getElementById('speedValue').textContent = e.target.value;
+                    document.getElementById('speed').textContent = e.target.value + 'ms';
+                    
+                    if (this.isTraining) {
+                        this.pauseTraining();
+                        this.startTraining();
+                    }
+                });
+            }
+
+            selectClass(classValue) {
+                this.selectedClass = classValue;
+                
+                // Оновити активні кнопки
+                document.getElementById('selectRedBtn').classList.toggle('active', classValue === 1);
+                document.getElementById('selectBlueBtn').classList.toggle('active', classValue === -1);
+                
+                // Оновити індикатор поточного класу
+                const indicator = document.getElementById('currentClass');
+                if (classValue === 1) {
+                    indicator.textContent = '🔴 Клас A';
+                    indicator.style.color = '#ff4757';
+                } else {
+                    indicator.textContent = '🔵 Клас B';
+                    indicator.style.color = '#3742fa';
+                }
+                
+                // Змінити курсор полотна залежно від вибраного класу
+                this.canvas.style.cursor = classValue === 1 ? 'crosshair' : 'pointer';
+            }
+
+            addPoint(event, label) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = (event.clientX - rect.left - this.canvas.width / 2) / (this.canvas.width / 2);
+                const y = -(event.clientY - rect.top - this.canvas.height / 2) / (this.canvas.height / 2);
+                
+                this.points.push({
+                    x: x,
+                    y: y,
+                    label: label,
+                    canvasX: event.clientX - rect.left,
+                    canvasY: event.clientY - rect.top
+                });
+
+                this.isConverged = false;
+                this.epochsSinceLastError = 0;
+                this.draw();
+                this.updateDisplay();
+                this.updateDiagram();
+            }
+
+            addManualPoint() {
+                const x = parseFloat(document.getElementById('manualX').value);
+                const y = parseFloat(document.getElementById('manualY').value);
+                
+                this.points.push({
+                    x: x,
+                    y: y,
+                    label: this.selectedClass,
+                    canvasX: (x * this.canvas.width / 2) + this.canvas.width / 2,
+                    canvasY: (-y * this.canvas.height / 2) + this.canvas.height / 2
+                });
+
+                this.isConverged = false;
+                this.epochsSinceLastError = 0;
+                this.draw();
+                this.updateDisplay();
+                this.updateDiagram();
+                
+                // Додати ефект підтвердження
+                const button = document.getElementById('addManualBtn');
+                button.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    button.style.transform = 'scale(1)';
+                }, 150);
+            }
+
+            addRandomPoints(count = null) {
+                if (count === null) {
+                    count = parseInt(document.getElementById('randomPointsCount').value);
+                }
+                
+                for (let i = 0; i < count; i++) {
+                    const x = Math.random() * 2 - 1;
+                    const y = Math.random() * 2 - 1;
+                    const label = Math.random() > 0.5 ? 1 : -1;
+                    
+                    this.points.push({
+                        x: x,
+                        y: y,
+                        label: label,
+                        canvasX: (x * this.canvas.width / 2) + this.canvas.width / 2,
+                        canvasY: (-y * this.canvas.height / 2) + this.canvas.height / 2
+                    });
+                }
+                
+                this.isConverged = false;
+                this.epochsSinceLastError = 0;
+                this.draw();
+                this.updateDisplay();
+                this.updateDiagram();
+            }
+
+            startTraining() {
+                if (this.points.length === 0) {
+                    alert('Додайте точки для навчання!');
+                    return;
+                }
+
+                this.isTraining = true;
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('pauseBtn').disabled = false;
+
+                this.trainingInterval = setInterval(() => {
+                    this.trainStep();
+                }, this.speed);
+            }
+
+            pauseTraining() {
+                this.isTraining = false;
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('pauseBtn').disabled = true;
+                
+                if (this.trainingInterval) {
+                    clearInterval(this.trainingInterval);
+                }
+            }
+
+            trainStep() {
+                if (this.points.length === 0) return;
+
+                const point = this.points[this.currentPointIndex];
+                const inputs = [point.x, point.y];
+                const wasError = this.perceptron.train(inputs, point.label);
+                
+                if (wasError) {
+                    this.errors++;
+                    this.epochsSinceLastError = 0;
+                    this.isConverged = false;
+                } else {
+                    this.epochsSinceLastError++;
+                }
+
+                this.currentPointIndex = (this.currentPointIndex + 1) % this.points.length;
+                
+                if (this.currentPointIndex === 0) {
+                    this.epoch++;
+                    
+                    // Перевірка на збіжність - якщо пройшли повну епоху без помилок
+                    if (this.epochsSinceLastError >= this.points.length && !this.isConverged) {
+                        this.isConverged = true;
+                        this.showConvergenceNotification();
+                    }
+                }
+
+                this.draw();
+                this.updateDisplay();
+                this.updateDiagram();
+            }
+
+            showConvergenceNotification() {
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                notification.innerHTML = `
+                    <div style="font-size: 24px; margin-bottom: 10px;">🎉 Вітаємо!</div>
+                    <div>Персептрон успішно навчився!</div>
+                    <div style="font-size: 14px; margin-top: 10px;">Точність: ${this.calculateAccuracy()}%</div>
+                    <div style="font-size: 14px;">Епох: ${this.epoch}</div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Автоматично прибрати повідомлення через 4 секунди
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 4000);
+                
+                // Можливість закрити кліком
+                notification.addEventListener('click', () => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                });
+            }
+
+            updateDiagram() {
+                // Оновити значення ваг в схемі
+                document.getElementById('w1Text').textContent = `w₁: ${this.perceptron.weights[0].toFixed(2)}`;
+                document.getElementById('w2Text').textContent = `w₂: ${this.perceptron.weights[1].toFixed(2)}`;
+                document.getElementById('biasText').textContent = `b: ${this.perceptron.bias.toFixed(2)}`;
+                
+                // Показати поточний вихід для останньої точки
+                if (this.points.length > 0 && this.currentPointIndex > 0) {
+                    const lastPoint = this.points[this.currentPointIndex - 1];
+                    const output = this.perceptron.predict([lastPoint.x, lastPoint.y]);
+                    document.getElementById('outputText').textContent = `y: ${output}`;
+                } else {
+                    document.getElementById('outputText').textContent = `y: 0`;
+                }
+            }
+
+            clearPoints() {
+                this.points = [];
+                this.currentPointIndex = 0;
+                this.epoch = 0;
+                this.errors = 0;
+                this.isConverged = false;
+                this.epochsSinceLastError = 0;
+                this.pauseTraining();
+                this.draw();
+                this.updateDisplay();
+                this.updateDiagram();
+            }
+
+            resetWeights() {
+                this.perceptron.reset();
+                this.currentPointIndex = 0;
+                this.epoch = 0;
+                this.errors = 0;
+                this.isConverged = false;
+                this.epochsSinceLastError = 0;
+                this.draw();
+                this.updateDisplay();
+                this.updateDiagram();
+            }
+
+            draw() {
+                // Очистити полотно
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Намалювати сітку
+                this.drawGrid();
+                
+                // Намалювати лінію розділення
+                this.drawSeparationLine();
+                
+                // Намалювати точки
+                this.drawPoints();
+                
+                // Виділити поточну точку під час навчання
+                if (this.isTraining && this.points.length > 0) {
+                    this.highlightCurrentPoint();
+                }
+            }
+
+            drawGrid() {
+                this.ctx.strokeStyle = '#e0e0e0';
+                this.ctx.lineWidth = 1;
+                
+                // Вертикальні лінії
+                for (let i = 0; i <= 10; i++) {
+                    const x = (i / 10) * this.canvas.width;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                
+                // Горизонтальні лінії
+                for (let i = 0; i <= 10; i++) {
+                    const y = (i / 10) * this.canvas.height;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.canvas.width, y);
+                    this.ctx.stroke();
+                }
+
+                // Центральні осі
+                this.ctx.strokeStyle = '#888';
+                this.ctx.lineWidth = 2;
+                
+                // Вертикальна вісь
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.canvas.width / 2, 0);
+                this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+                this.ctx.stroke();
+                
+                // Горизонтальна вісь
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, this.canvas.height / 2);
+                this.ctx.lineTo(this.canvas.width, this.canvas.height / 2);
+                this.ctx.stroke();
+            }
+
+            drawSeparationLine() {
+                if (this.perceptron.weights[1] === 0) return;
+
+                this.ctx.strokeStyle = '#4CAF50';
+                this.ctx.lineWidth = 3;
+                this.ctx.setLineDash([5, 5]);
+
+                // Рівняння лінії: w1*x + w2*y + bias = 0
+                // y = -(w1*x + bias) / w2
+                const w1 = this.perceptron.weights[0];
+                const w2 = this.perceptron.weights[1];
+                const bias = this.perceptron.bias;
+
+                const x1 = -1;
+                const y1 = -(w1 * x1 + bias) / w2;
+                const x2 = 1;
+                const y2 = -(w1 * x2 + bias) / w2;
+
+                // Конвертувати в координати полотна
+                const canvasX1 = (x1 * this.canvas.width / 2) + this.canvas.width / 2;
+                const canvasY1 = (-y1 * this.canvas.height / 2) + this.canvas.height / 2;
+                const canvasX2 = (x2 * this.canvas.width / 2) + this.canvas.width / 2;
+                const canvasY2 = (-y2 * this.canvas.height / 2) + this.canvas.height / 2;
+
+                this.ctx.beginPath();
+                this.ctx.moveTo(canvasX1, canvasY1);
+                this.ctx.lineTo(canvasX2, canvasY2);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+            }
+
+            drawPoints() {
+                this.points.forEach((point, index) => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(point.canvasX, point.canvasY, 8, 0, 2 * Math.PI);
+                    
+                    // Кольори точок
+                    if (point.label === 1) {
+                        this.ctx.fillStyle = '#ff4757';
+                    } else {
+                        this.ctx.fillStyle = '#3742fa';
+                    }
+                    
+                    this.ctx.fill();
+                    
+                    // Обводка
+                    this.ctx.strokeStyle = '#333';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.stroke();
+                });
+            }
+
+            highlightCurrentPoint() {
+                if (this.currentPointIndex < this.points.length) {
+                    const point = this.points[this.currentPointIndex];
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(point.canvasX, point.canvasY, 15, 0, 2 * Math.PI);
+                    this.ctx.strokeStyle = '#ffeb3b';
+                    this.ctx.lineWidth = 4;
+                    this.ctx.stroke();
+                }
+            }
+
+            calculateAccuracy() {
+                if (this.points.length === 0) return 0;
+
+                let correct = 0;
+                this.points.forEach(point => {
+                    const prediction = this.perceptron.predict([point.x, point.y]);
+                    if (prediction === point.label) {
+                        correct++;
+                    }
+                });
+
+                return Math.round((correct / this.points.length) * 100);
+            }
+
+            updateDisplay() {
+                document.getElementById('epoch').textContent = this.epoch;
+                document.getElementById('errors').textContent = this.errors;
+                document.getElementById('accuracy').textContent = this.calculateAccuracy() + '%';
+                document.getElementById('w1').textContent = this.perceptron.weights[0].toFixed(2);
+                document.getElementById('w2').textContent = this.perceptron.weights[1].toFixed(2);
+                document.getElementById('bias').textContent = this.perceptron.bias.toFixed(2);
+            }
+        }
+
+        // Ініціалізація симулятора
+        const simulator = new PerceptronSimulator();
+    </script>
+</body>
+</html>
